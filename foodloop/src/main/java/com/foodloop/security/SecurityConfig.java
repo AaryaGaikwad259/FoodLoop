@@ -40,10 +40,21 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/api/categories/**", "/api/foods/**", "/api/surplus-deals/**").permitAll()
-                .requestMatchers("/api/categories/**", "/api/foods/**").hasRole("ADMIN")   // POST/PUT/PATCH/DELETE
+
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/categories/**",
+                    "/api/foods/**",
+                    "/api/surplus-deals/**",
+                    "/api/recommendations",
+                    "/api/recommendations/**"
+                ).permitAll()
+
+                .requestMatchers("/api/categories/**", "/api/foods/**").hasRole("ADMIN")
                 .requestMatchers("/api/orders/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated())
+
+                .anyRequest().authenticated()
+            )
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((req, res, e) ->
                         writeJson(res, 401, "Unauthorized", "Authentication required: token missing, invalid or expired"))

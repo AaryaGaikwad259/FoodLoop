@@ -109,7 +109,8 @@ function App() {
   const [foods, setFoods] = useState([]);
   const [loadingFoods, setLoadingFoods] = useState(true);
   const [menuError, setMenuError] = useState("");
-
+  const [recommendations, setRecommendations] = useState([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [sortBy, setSortBy] = useState("recommended");
@@ -205,6 +206,42 @@ function App() {
       })
       .finally(() => {
         if (active) setLoadingFoods(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }
+  , []);
+
+  // Fetch ML-powered food recommendations.
+  useEffect(() => {
+    let active = true;
+
+    axios
+      .get(`${API}/recommendations?preference=popular%20tasty%20food&limit=5`, {
+        timeout: 15000,
+      })
+      .then((response) => {
+        const body = response.data;
+
+        const data = Array.isArray(body)
+          ? body
+          : body?.recommendations ||
+            body?.content ||
+            body?.data ||
+            [];
+
+        if (active) {
+          setRecommendations(Array.isArray(data) ? data : []);
+        }
+      })
+      .catch((error) => {
+        console.error("Recommendation request failed:", error);
+        if (active) setRecommendations([]);
+      })
+      .finally(() => {
+        if (active) setLoadingRecommendations(false);
       });
 
     return () => {
@@ -796,8 +833,6 @@ function App() {
           )}
         </nav>
 
-
-
         <div className="nav-actions">
           {user ? (
             <button
@@ -825,14 +860,16 @@ function App() {
       </header>
 
       <main>
-        {page === "home" && (
-          <HomePage
-            onMenu={showMenu}
-            onDeals={() => go("deals")}
-            onAdd={addToCart}
-            foods={foods.slice(0, 3)}
-          />
-        )}
+      {page === "home" && (
+        <HomePage
+          onMenu={showMenu}
+          onDeals={() => go("deals")}
+          onAdd={addToCart}
+          foods={foods.slice(0, 3)}
+          recommendations={recommendations}
+          loadingRecommendations={loadingRecommendations}
+        />
+      )}
 
         {page === "menu" && (
           <section className="menu-section page-width">
@@ -1094,7 +1131,7 @@ function App() {
   );
 }
 
-function HomePage({ onMenu, onDeals, onAdd, foods }) {
+function HomePage({ onMenu, onDeals, onAdd, foods, recommendations, loadingRecommendations}) {
   return (
     <>
       <section className="hero">
@@ -1205,6 +1242,42 @@ function HomePage({ onMenu, onDeals, onAdd, foods }) {
           </div>
         )}
       </section>
+
+    <section className="featured-section page-width">
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">POWERED BY MACHINE LEARNING</span>
+          <h2>
+            Picked for your cravings<span>.</span>
+          </h2>
+          <p>Discover dishes recommended by our FoodLoop ML service.</p>
+        </div>
+      </div>
+
+      {loadingRecommendations ? (
+        <div className="state-panel">
+          <h3>Finding your next favourite...</h3>
+        </div>
+      ) : recommendations.length > 0 ? (
+        <div className="food-grid featured-grid">
+          {recommendations.map((food) => (
+            <FoodCard
+              key={food.id}
+              food={food}
+              onAdd={onAdd}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="featured-placeholder">
+          <p>No recommendations are available right now.</p>
+          <button className="button button-outline" onClick={onMenu}>
+            Explore the menu
+          </button>
+        </div>
+      )}
+    </section>
+
 
       <section className="deal-banner">
         <div>
